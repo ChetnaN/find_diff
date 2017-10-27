@@ -1,0 +1,414 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function cleartrip_menu() {
+  $menus = taxonomy_get_tree($vid = 5, $parent = 0, $max_depth = 1, $load_entities = FALSE);
+  /*print_r($menus);
+  die();*/
+  foreach($menus as $menu) {
+    $temp = str_replace(" ","-",$menu->name);
+    $url = strtolower($temp);
+    $items[$url] = array(
+      'title' => t($menu->name),
+      'page callback' => '_temp_menu_callback',
+      'access callback' => TRUE,
+      'type' => MENU_NORMAL_ITEM,
+      );
+  }
+
+  return $items;
+}
+
+function _temp_menu_callback() {
+  $str = "";
+  $name = 'offers_listing';
+  $display_id = 'block_1';
+  $ptid = $tid = $termid = 0;
+  $vocabulary = 'category';
+  $pt_name = str_replace("-"," ", arg(0));
+  $ptids = taxonomy_get_term_by_name($pt_name, $vocabulary);
+  foreach ($ptids as $key => $value) {
+    $ptid = $key;
+    break;
+  }
+
+  $t_name = str_replace("-"," ", arg(1));
+  $tids = taxonomy_get_term_by_name($t_name, $vocabulary);
+  foreach ($tids as $key => $value) {
+	  if(isset($value->field_page_heading) && !empty($value->field_page_heading)) {
+		$title_link = $value->field_page_heading['und'][0]['value'];
+	  }
+    $tid = $key;
+    $temp = taxonomy_get_parents($tid);
+    foreach($temp as $tkey => $tvalue) {
+      $tparent = $tkey;
+    }
+    if($tparent == $ptid) {
+      break;
+    }
+  }
+
+ $title_link = !empty($title_link) ? $title_link : ucwords($t_name).' Offers';
+global $user;
+  if($ptid > 0 && $tid == 0 && arg(1) !='expired') {
+    $all_children = taxonomy_get_children($ptid, $vid = 5);
+    $temp = array_keys($all_children);
+    $termid = implode('+', $temp);
+    $str = '<h1 class="page-title">'.t('All offers and deals').'</h1>'.views_embed_view($name, $display_id, $termid);
+    if($user->uid != 0) {    $str =  $str  . views_embed_view($name, 'block_5', $termid); }
+  } elseif ($ptid > 0 && $tid == 0 && arg(1)=='expired') {
+
+    $str = '<h1 class="page-title">'.t($title_link).'</h1>'.views_embed_view($name,'block_4', $termid);
+  } elseif($tid > 0 && $ptid > 0) {
+    $termid = $tid;
+    $str = '<h1 class="page-title">'.t($title_link).'</h1>'.views_embed_view($name, $display_id, $termid);
+    if($user->uid != 0) {    $str = $str  . views_embed_view($name, 'block_5', $termid); }
+  } else {
+    $str = "";
+  }
+  return $str;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function cleartrip_block_info() {
+  $blocks = array();
+  $blocks['left_navigation_block'] = array(
+    'info' => t('Left Navigation Block'),
+    );
+  $blocks['country_block'] = array(
+    'info' => t('Country Block'),
+    );
+
+  return $blocks;
+}
+/**
+ * Implements hook_block_view().
+ */
+function cleartrip_block_view($delta='') {
+  $block = array();
+
+  switch($delta) {
+    case 'left_navigation_block' :
+    $block['content'] = left_nav_block_view();
+    break;
+    case 'country_block' :
+        $block['content'] = country_block_view();
+  }
+
+  return $block;
+}
+
+/**
+ * Custom function to assemble renderable array for block content.
+ * Returns a renderable array with the block content.
+ * @return
+ *   returns a renderable array of block content.
+ */
+function left_nav_block_view() {
+  $block = "";
+  $pt_name = '';
+  $ptid = 0;
+  $vocabulary = 'category';
+  if(arg(0) == 'node' && arg(1) >0 ) {
+    $query = db_select('field_data_field_category', 't');
+    $query->addField('t', 'field_category_tid');
+    $query->condition('t.entity_id', arg(1));
+    $cat = $query->execute()->fetchCol();
+    foreach($cat as $key => $value){
+      $ptid = $value;
+      if(count(taxonomy_get_children($ptid, $vid = 5)) > 0) {
+        break;
+      }
+    }
+  } else {
+    $pt_name = str_replace("-"," ", arg(0));
+    $ptids = taxonomy_get_term_by_name($pt_name, $vocabulary);
+    foreach ($ptids as $key => $value) {
+      $ptid = $key;
+      break;
+    }
+  }
+
+  $cc_path = current_path();
+  $block .= '<ul id="IconNavList">';
+  foreach(taxonomy_get_children($ptid, $vid = 5) as $key => $value) {
+    $class = " ";
+    $class = @$value->field_class['und']['0']['value'];
+    $name = '<span></span>'.t(ucwords($value->name));
+    
+    if(arg(1) == "expired") {
+        $path = str_replace(" ","-", strtolower(taxonomy_term_load($ptid)->name)).'/expired/'.str_replace(" ","-", strtolower($value->name));
+    }
+    else {
+        $path = str_replace(" ","-", strtolower(taxonomy_term_load($ptid)->name)).'/'.str_replace(" ","-", strtolower($value->name));
+    }
+    $option = array('attributes' => array('class' => array($class)), 'html' => TRUE);
+    $liclass = " ";
+    if($path == $cc_path) {
+      $liclass = 'class="active-trail"';
+    }
+
+    if(arg(0)=='node' && arg(1) > 0) {
+      $query = db_select('field_data_field_category', 't');
+      $query->addField('t', 'field_category_tid');
+      $query->condition('t.entity_id', arg(1));
+      $cat1 = $query->execute()->fetchCol();
+      foreach($cat1 as $key1 => $value1){
+        $ptid1 = $value1;
+        if(count(taxonomy_get_children($ptid1, $vid = 5)) == 0) {
+          break;
+        }
+      }
+
+      if($ptid1 == $key) {
+          $liclass = 'class="active-trail"';
+      }
+    }
+
+    $block .= '<li ' . $liclass . '>';
+    $block .= l($name , $path , $option);
+    $block .= '</li>';
+  }
+  $block .= '</ul>';
+
+  return $block;
+}
+
+
+/**
+ * Footer country navigation block.
+ * @return string
+ */
+function country_block_view() {
+  $block = "";
+  $pt_name = '';
+  $ptid = 0;
+  $vocabulary = 'category';
+
+  if(arg(0) == 'node' && arg(1) >0 ) {
+    $query = db_select('field_data_field_category', 't');
+    $query->addField('t', 'field_category_tid');
+    $query->condition('t.entity_id', arg(1));
+    $cat = $query->execute()->fetchCol();
+    foreach($cat as $key => $value){
+      $ptid = $value;
+      if(count(taxonomy_get_children($ptid, $vid = 5)) > 0) {
+        break;
+      }
+    }
+  } else {
+    $pt_name = str_replace("-"," ", arg(0));
+    $ptids = taxonomy_get_term_by_name($pt_name, $vocabulary);
+    foreach ($ptids as $key => $value) {
+      $ptid = $key;
+      break;
+    }
+  }
+
+
+
+  $menus = taxonomy_get_tree($vid = 5, $parent = 0, $max_depth = 1, $load_entities = FALSE);
+
+  $temp = array();
+  foreach ($menus as $key => $value) {
+    $temp[$key] = $value->tid;
+  }
+  $tid_loads = taxonomy_term_load_multiple($temp);
+  $block = "";
+  $block .= '<div id="country-list">';
+  $block .= '<div class="selected-country '.@taxonomy_term_load($ptid)->field_class['und']['0']['value'].'"><span class="flag"></span><span class="arrow"></span></div>';
+  $block .= '<ul style="display:none;">';
+  $option = array('attributes' => array('class' => array('country-icon')), 'html' => TRUE);
+
+  foreach ($tid_loads as $key => $value) {
+    $liclass = "";
+    $active = "";
+    if($ptid == $key) {
+      $active = 'active-trail';
+    }
+    if(isset($value->field_class['und']['0']['value'])) {
+      $liclass = 'class="'.$value->field_class['und']['0']['value'].' '.$active.'"';
+      $option = array('attributes' => array('class' => array($value->field_class['und']['0']['value'])), 'html' => TRUE);
+    }
+    $name = '<span class="tick-icon"></span>'.strtoupper($value->name).'<span class="flag-icon"></span>';
+    $path = str_replace(" ","-", strtolower($value->name));
+    $block .= '<li ' . $liclass . '>';
+    $block .= l($name , $path , $option);
+    $block .= '</li>';
+  }
+  $block .= '</ul></div>';
+
+  return $block;
+}
+
+/*
+ * hook form alter
+ */
+function cleartrip_form_alter(&$form, &$form_state, $form_id){
+  switch($form_id) {
+    case 'hotel_deals_node_form':
+    $result = db_query('SELECT nt.tid, td.name FROM {nat} nt , {node} n,
+      {taxonomy_term_data} td WHERE
+      n.nid=nt.nid AND nt.tid=td.tid AND n.language = :lang AND nt.vid = :vid', array(':lang' => 'ar',':vid' => 2));
+    $record = $result->fetchAllKeyed();
+    $form['field_city']['und']['#options'] = array_diff_assoc($form['field_city']['und']['#options'], $record);
+
+    $result = db_query('SELECT nt.tid, td.name FROM {nat} nt , {node} n,
+      {taxonomy_term_data} td WHERE
+      n.nid=nt.nid AND nt.tid=td.tid AND n.language = :lang AND nt.vid = :vid', array(':lang' => 'ar',':vid' => 4));
+    $record = $result->fetchAllKeyed();
+    $form['field_festival']['und']['#options'] = array_diff_assoc($form['field_festival']['und']['#options'], $record);
+    break;
+
+    case 'flight_deals_node_form':
+    $result = db_query('SELECT nt.tid, td.name FROM {nat} nt , {node} n,
+      {taxonomy_term_data} td WHERE
+      n.nid=nt.nid AND nt.tid=td.tid AND n.language = :lang AND nt.vid = :vid', array(':lang' => 'ar',':vid' => 2));
+    $record = $result->fetchAllKeyed();
+    $form['field_flights_city']['und']['#options'] = array_diff_assoc($form['field_flights_city']['und']['#options'], $record);
+
+    $result = db_query('SELECT nt.tid, td.name FROM {nat} nt , {node} n,
+      {taxonomy_term_data} td WHERE
+      n.nid=nt.nid AND nt.tid=td.tid AND n.language = :lang AND nt.vid = :vid', array(':lang' => 'ar',':vid' => 4));
+    $record = $result->fetchAllKeyed();
+    $form['field_flights_festival']['und']['#options'] = array_diff_assoc($form['field_flights_festival']['und']['#options'], $record);
+    break;
+
+    case 'city_node_form':
+    $form['#validate'][]="_custom_city_title_validate";
+    break;
+
+    case 'translation_overview_node_form':
+    //$en_translate_link = $form['languages']['en']['status']['#markup'];
+    $ar_translate_link = $form['languages']['ar']['status']['#markup'];
+    if(strstr($ar_translate_link, '/ar/') != TRUE) {
+      $base = base_path();
+       $form['languages']['ar']['status']['#markup'] = str_replace($base, $base."ar/", $ar_translate_link);
+    }
+    /*  if(stristr($en_translate_link, '/ar/') == TRUE) {
+       $form['languages']['en']['status']['#markup'] = str_replace("/ar/", "/en/", $en_translate_link);
+     }
+
+     if(strstr($ar_translate_link, '/en/') == TRUE) {
+       $form['languages']['ar']['status']['#markup'] = str_replace("/en/", "/ar/", $ar_translate_link);
+     }*/
+     break;
+     case 'i18n_string_locale_translate_edit_form':
+     global $base_url, $language;
+     if($language->language == "en") {
+      $trans = '/ar/';
+      $url = $base_url . $trans . current_path();
+      $form['switch_to_arabic'] = array(
+        '#type' => 'item',
+        '#markup' => '<a href="'.$url.'">Switch to Arabic</a>',
+      );
+     }
+     break;
+     case 'locale_translation_filter_form':
+      $ar_translate_link = $form['languages']['ar']['status']['#markup'];
+    if(strstr($ar_translate_link, '/ar/') != TRUE) {
+       $base = base_path();
+       $form['languages']['ar']['status']['#markup'] = str_replace("/en/", "/ar/", $ar_translate_link);
+       $form['languages']['ar']['status']['#markup'] = str_replace($base, $base."ar/", $ar_translate_link);
+      }
+    break;
+
+ }
+}
+
+/*
+ * function for getting translated term id from city term name
+ * used in views to fetch city info on city listing page
+ */
+function _get_translated_city_tid_by_tname($city, $vid = '2') {
+  global $language;
+  $tid = 0;
+  if ($city != "") {
+    $result = db_query('SELECT nat.nid, nat.tid, n.language, n.tnid FROM taxonomy_term_data t, nat, node n
+      WHERE n.nid=nat.nid AND t.tid = nat.tid AND t.name = :city AND t.vid = :vid limit 1',
+      array(':city' => $city, ':vid' => $vid));
+    $record = $result->fetchObject();
+    if($record) {
+      $all_translation = translation_node_get_translations($record->tnid);
+      $result = db_query('SELECT tid FROM nat WHERE nid = :nid',
+        array(':nid' => $all_translation[$language->language]->nid));
+      $record = $result->fetchObject();
+      $tid = $record->tid;
+    }
+
+  }
+  return $tid;
+}
+
+/*
+ * Custom validation for city title field.
+ */
+
+function _custom_city_title_validate($form, &$form_state) {
+  $title=$form_state['values']['title'];
+  $label=$form['title']['#title'];
+  if ($title != '' && $form_state['values']['language'] == 'en') {
+    if (preg_match("/[^a-zA-Z0-9@#\[\]\s]/", $title)) {
+     form_set_error('title', t($label.' field have contains invalid characters.'));
+   }
+ }
+}
+
+
+/**
+ * Function for node--hotel_deals.tpl
+ */
+function cleartrip_hotel_amenities($amenities = '')  {
+  $query = db_query('SELECT ttd.name as name, fm.uri as path FROM {file_managed} fm
+    INNER JOIN field_data_field_amenities_image fai ON fai.field_amenities_image_fid = fm.fid
+    INNER JOIN taxonomy_term_data ttd ON ttd.tid = fai.entity_id
+    where ttd.vid = 3');
+  $query = $query->fetchAll();
+  foreach ($amenities as $key => $value) {
+    if(is_int($key))  {
+      $temp[$value['#markup']] = $value['#markup'];
+    }
+  }
+  foreach ($query as $key => $value) {
+    $i = '0';
+    if($i == '0')  {
+      foreach($temp as $tempkey => $tempvalue)  {
+        if($tempkey == $value->name){
+          $query[$key] = (object)array('name' => $value->name, 'path' => $value->path, 'type' => 'enable');
+          $i = '10';
+        }
+      }
+      if ($i != '10')  {
+        $query[$key] = (object)array('name' => $value->name, 'path' => $value->path, 'type' => 'disable');
+      }
+    }
+  }
+  return ($query);
+}
+
+function cleartrip_entity_load($entities, $type){
+  if(arg(0) == 'node' && arg(1) == 'add' && !empty($_GET['translation'])){
+    foreach($entities as $id => &$entity){
+      if(is_a($entity,'FieldCollectionItemEntity')){
+        unset($entity->item_id);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_node_admin_content_alter
+ */
+function cleartrip_form_node_admin_content_alter(&$form, &$form_state, $form_id) {
+  foreach ($form['admin']['nodes']['#options'] as &$option) {
+    //foreach link, add the language
+    foreach ($option['operations']['data']['#links'] as &$link) {
+      //Copy the language from the Title. This should however not be needed...
+      $link['language'] = $option['title']['data']['#options']['language'];
+    }
+  }
+}

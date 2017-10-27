@@ -1,0 +1,6 @@
+name = cleartrip
+description = custom module for cleartrip website
+package = cleartrip
+core = 7.x
+version = 7.x
+files[] = cleartrip.module

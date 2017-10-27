@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Module install and update functions for the Nice help module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function kensio_uninstall() {
+  // Clean up any configuration variables we may have set.
+  $variables = array(
+    'kensio_username',
+    'kensio_password',
+    'kensio_instance',
+    'kensio_groupid',
+    'kensio_msgid',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}

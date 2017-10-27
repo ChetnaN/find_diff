@@ -1,0 +1,41 @@
+/*Header Section start*/
+.rtl.two-sidebars .content-inner{ margin-right: 20.8%; margin-left: 26%; }
+.rtl #header #branding{ float: right; }
+.rtl #header .region-header{ float: left; }
+.rtl #header #block-locale-language{ float: right; }
+/*Header Section end*/
+
+
+/*Mian body content start*/
+.rtl .region-sidebar-first{ float: right; margin-left: -25%; }
+.rtl .region-sidebar-second{ margin-left: -100%; }
+
+.rtl ul#IconNavList{ padding: 0; }
+.rtl #IconNavList li:after{ right:auto; left:10px; transform: rotate(180deg); margin-top: 3px; }
+.rtl #IconNavList li a{ margin-left: 0 ; margin-right: 50px !important; padding-right: 0; padding-left: 15px; }
+.rtl #IconNavList li a span{ left: auto; right:0; }
+.rtl #IconNavList li.active-trail{ border: 1px solid #ccc; border-left:none;  }
+.rtl .view-empty{ padding: 0 20px; }
+.rtl.page-node .field-name-field-question{ padding: 0 10px 0 0; background: url("../images/t_arrow1-rtl.png") no-repeat right center; }
+.rtl #main-content .view-offers-listing .views-row{ float: right; }
+.rtl #main-content .view-offers-listing .views-row-odd{ border-left:1px solid #ddd; border-right:none;    }
+
+/*Mian body content end*/
+
+
+/*Footer Section start*/
+.rtl #footer .region-footer ul li{ float: right; }
+.rtl #footer .region-footer #block-menu-menu-footer-bottom, 
+.rtl #footer .region-footer #block-block-5{ float: right; }
+/*Footer Section end*/
+
+
+@media only screen and (max-width : 767px) {
+	
+.rtl .region-sidebar-second{ margin-left: 0; }
+.rtl .view-empty{ color: #fff; }
+	
+}
+
+
+

@@ -1,0 +1,72 @@
+<?php
+
+function url_path_node_presave($node){
+    if ($node->type == 'page' && !isset($node->vid)){
+        $query = db_select('taxonomy_term_data', 't');
+        $query->addField('t', 'name');
+        $query->condition('t.tid', $node->field_category['und']['0']['tid']);
+        $tids = $query->execute()->fetchCol();
+        module_load_include('inc', 'pathauto');
+        $path1 = pathauto_cleanstring(strtolower($tids['0'])) . '/' . pathauto_cleanstring($node->field_subtitle['und']['0']['value']);
+        $query = db_select('url_alias', 'ua');
+        $query->addField('ua', 'alias');
+        $query->condition('ua.alias', $path1);
+        $test_path1 = $query->execute()->fetchField();
+        $run = 0;
+        $i = 0;
+        while ($run == '0'){
+        if (empty($test_path1)){
+            //print "empty"; $path1 remains the same and no change is done
+            $run = '2';
+            if ($i == '0') {
+            //Do nothing
+            }
+            else {
+            $path1 = $test_path;
+            }
+        }
+        else {
+            
+                $test_path = $path1 . '-' . $i;
+                $query = db_select('url_alias', 'ua');
+                $query->addField('ua', 'alias');
+                $query->condition('ua.alias', $test_path);
+                $test_path1 = $query->execute()->fetchField();
+                $i = $i +1;
+                $run = '0';
+            }
+        }
+        $node->path['alias'] = $path1;
+        $node->path['pathauto']= '0';
+    }
+}
+
+
+/**
+  * Implements hook_menu().
+  *
+  * @return array
+  */
+//function url_path_menu() {
+//    $items = array();
+//
+//    $items["admin/settings/sitewide-block"]  = array(
+//      "title" => 'Show Custom Code Site Wide.',
+//      'page callback'   =>  'drupal_get_form',
+//      'page arguments'  =>  array('url_path_sitewide'),
+//      'access arguments'  =>  array('Cleartrip custom field display sitewide'),
+//      'type' =>  MENU_CALLBACK,
+//    );
+//    return $items;
+//}
+//
+//
+//function url_path_sitewide(){
+//    $form["url_path_sitewide"] = array(
+//        "#type" => 'textarea',
+//        "#title"=> 'Text to be displayed',
+//        "#default_value" => variable_get('sitewide_code', ''),
+//        "#description" => t("Enter the Text")
+//        );
+//    return system_settings_form($form);
+//}

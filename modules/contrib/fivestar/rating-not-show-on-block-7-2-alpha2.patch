@@ -1,0 +1,31 @@
+diff --git a/docroot/sites/all/modules/contrib/fivestar/includes/fivestar.field.inc b/docroot/sites/all/modules/contrib/fivestar/includes/fivestar.field.inc
+index 40c99ea..88eab65 100644
+--- a/docroot/sites/all/modules/contrib/fivestar/includes/fivestar.field.inc
++++ b/docroot/sites/all/modules/contrib/fivestar/includes/fivestar.field.inc
+@@ -452,7 +452,7 @@ function fivestar_field_formatter_view($entity_type, $entity, $field, $instance,
+   $settings = $display['settings'];
+   $widgets = module_invoke_all('fivestar_widgets');
+   $widget = _fivestar_get_widget($widgets, $display, $instance);
+-  $values = $items[0];
++  $values = $items['processed']['0'];
+ 
+   // Determine if any set of stars to be displayed need to be
+   // displayed in a form. (That is, can the user click the stars
+@@ -679,7 +679,7 @@ function fivestar_field_prepare_view($entity_type, $entities, $field, $instances
+       $values['user'] = isset($votes['user']['value']) ? $votes['user']['value'] : 0;
+       $values['average'] = isset($votes['average']['value']) ? $votes['average']['value'] : 0;
+       $values['count'] = isset($votes['count']['value']) ? $votes['count']['value'] : 0;
+-      $items[$id] = array($values);
++      $items[$id]['processed'] = array($values);
+     }
+     else {
+       // If the widget type is not exposed, then the count is always 1 or 0.
+@@ -694,7 +694,7 @@ function fivestar_field_prepare_view($entity_type, $entities, $field, $instances
+         $values['user'] = 0;
+         $values['average'] = 0;
+       }
+-      $items[$id] = array($values);
++      $items[$id]['processed'] = array($values);
+     }
+   }
+ }

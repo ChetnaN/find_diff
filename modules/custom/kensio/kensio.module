@@ -1,0 +1,229 @@
+<?php
+
+/**
+ * Implements hook_menu()
+ * @return string
+ */
+function kensio_menu() {
+
+  $items = array();
+  
+  
+  $items['admin/config/user-interface/kensio'] = array(
+    'title' => 'kensio',
+    'description' => 'kensio',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('kensio_settings'),
+    'access arguments' => array('administer site configuration'),
+    
+   );
+
+  return $items;
+}
+
+
+/**
+ * Implements kensio_settings()
+ * @param type $form
+ * @param type $form_state
+ * @return type
+ */
+function kensio_settings($form, &$form_state) {
+
+  $form['kensio_username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#default_value' => variable_get('kensio_username', ''),
+    '#description' => t('Username for Kensio Login'),
+  );
+   $form['kensio_password'] = array(
+    '#type' => 'password',
+    '#title' => t('Password'),
+    '#default_value' => variable_get('kensio_password', ''),
+    '#description' => t('Password for Kensio Login'),
+  );
+   
+   $form['kensio_instance'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL'),
+    '#default_value' => variable_get('kensio_instance', ''),
+    '#description' => t('URL for Kensio Login'),
+  );
+  $form['kensio_groupid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Group ID'),
+    '#default_value' => variable_get('kensio_groupid', ''),
+    '#description' => t('Group ID for Kensio List'),
+  );
+  $form['kensio_msgid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Msg ID'),
+    '#default_value' => variable_get('kensio_msgid', ''),
+    '#description' => t('Message ID for Kensio List'),
+  );
+   
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_block_info()
+ * @return string
+ */
+function kensio_block_info() {
+  $blocks = array();
+  $blocks['kensio_subscribe'] = array(
+        'info' => t('Subscribe To Kensio'),
+        'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements kensio_block_view()
+ * @global type $language
+ * @param type $block_name
+ * @return type
+ */
+function kensio_block_view($block_name = '') {
+  global $language;
+  $form1 = '';
+  $block=array();
+
+  switch ($block_name) {
+    case 'kensio_subscribe':
+        $block['content'] = drupal_get_form('kensio_user_subscribe');
+        break;
+  }
+  return ($block);
+}
+
+
+/**
+ * Implements user_subscribe_kensio()
+ * @param type $form
+ * @param type $form_state
+ * @return string
+ */
+function kensio_user_subscribe($form, &$form_state) {
+    $form['user_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t(''),
+    '#size' => '25',
+    '#attributes' => array('placeholder' => t('Your Name')),
+    );
+    $form['user_email'] = array(
+    '#type' => 'textfield',
+    '#title' => t(''),
+    '#size' => '25',
+    '#attributes' => array('placeholder' => t('Your Email Address')),
+    );
+    // $form['user_city'] = array(
+    // '#type' => 'textfield',
+    // '#title' => t(''),
+    // '#size' => '25',
+    // '#attributes' => array('placeholder' => t('City')),
+    // );
+    $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+      );
+    return $form;
+}
+
+
+/**
+ * Implements hook_theme()
+ * @return type
+ */
+function kensio_theme() {
+  return array(
+    'kensio_user_subscribe' => array(
+        'render element' => 'form',
+        'template' => 'kensio-user-subscribe',
+      ),
+    );
+}
+
+
+/**
+ * Implements kensio_subscirbe()
+ * @param type $form
+ * @param type $form_state
+ */
+function kensio_user_subscribe_submit($form, &$form_state) {
+    kensio_submit($form['user_name']['#value'], $form['user_email']['#value']);
+}
+
+
+/**
+ * Implements kensio_submit()
+ * @param type $firstname
+ * @param type $email
+ * @param type $city
+ * @return type
+ */
+function kensio_submit($firstname = '', $email = '', $city = '') {
+
+    global $base_url;
+
+    $subscribe_url = $base_url . request_uri();
+
+    $sendMessage=0; // Keep it always 0 to prevent sending system email
+    $msg_id= variable_get('kensio_msgid'); // Prepared Message ID goes here
+    $groupId= variable_get('kensio_groupid'); // Group ID in which user need to be added
+    $instance= variable_get('kensio_instance'); // eCM secured URL
+    $username= variable_get('kensio_username'); // eCM username (email)
+    $password= variable_get('kensio_password'); // eCM user password
+    $client = new soapclient('http://webservices.ecircle-ag.com/soap/ecm.wsdl');	
+    $logonparams = array('realm' => $instance,
+        'user' => $username, 'passwd' => $password);
+    try {
+        $result = $client->logon($logonparams);
+    }
+    catch (Exception $e) {
+        drupal_set_message(t('Invalid Login Details.'));
+    }
+    $sessionid = $result->logonReturn;
+    $blacklist=array('session' => $sessionid, 'email' =>  $email);
+    try {
+        $result=$client->isEmailOnSystemBlacklist($blacklist);
+    }
+    catch (Exception $e) {
+        drupal_set_message(t('Invalid Email-ID @var.', array('@var' => $email)));
+        return;
+    }
+    $blacklist_check=$result->isEmailOnSystemBlacklistReturn;
+    if ($blacklist_check==1) {
+        drupal_set_message(t('Your Email-ID is blacklisted.'));
+        return;
+    }
+ else {
+        /*******************************************************************************************
+                        Code changes to capture the subscribing url
+        $member=sprintf('<?xml version="1.0" ?>
+            <member xmlns="http://webservices.ecircle-ag.com/ecm"><email>%s</email>
+            <FirstName>%s</FirstName><namedattr name="city">%s</namedattr>
+            </member>', $email, $firstname, $city);
+        $params = array('session' => $sessionid,
+            'memberXml' => $member, 'groupId' => $groupId, 'sendMessage' => 0);
+        ********************************************************************************************/
+
+        $member=sprintf('<?xml version="1.0" ?><member xmlns="http://webservices.ecircle-ag.com/ecm">
+              <email>%s</email><FirstName>%s</FirstName><namedattr name="subscribe_url">%s</namedattr>
+              </member>', $email, $firstname, $subscribe_url);
+        $params = array('session' => $sessionid,
+            'memberXml' => $member, 'groupId' => $groupId, 'sendMessage' => 0);
+        try {
+            $result = $client->createOrUpdateUserMemberByEmail($params);
+        }
+	catch (Exception $e) {
+          /*******************************************************************************************
+                        Code changes to capture the subscribing url
+          drupal_set_message(t('Invalid choice @var for city.', array('@var' => $city)));
+          *******************************************************************************************/
+          drupal_set_message(t('Unable to subscribe to the our mailing list.'));
+          return;
+        }
+        drupal_set_message(t('You have successfully subscribed to our mailing list.'));
+ }
+}

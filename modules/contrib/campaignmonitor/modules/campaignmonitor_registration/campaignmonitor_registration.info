@@ -1,0 +1,12 @@
+name = Campaign Monitor registration page
+description = "Adds support for Campaign Monitor on the registration page"
+core = 7.x
+package = Campaign Monitor
+dependencies[] = campaignmonitor
+files[] = campaignmonitor_registration.module
+; Information added by drupal.org packaging script on 2013-01-05
+version = "7.x-1.0"
+core = "7.x"
+project = "campaignmonitor"
+datestamp = "1357398656"
+

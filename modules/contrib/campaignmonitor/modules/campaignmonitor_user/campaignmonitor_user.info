@@ -1,0 +1,12 @@
+name = Campaign Monitor user page
+description = "Adds support for Campaign Monitor in the user profile"
+core = 7.x
+package = Campaign Monitor
+dependencies[] = campaignmonitor
+files[] = campaignmonitor_user.module
+; Information added by drupal.org packaging script on 2013-01-05
+version = "7.x-1.0"
+core = "7.x"
+project = "campaignmonitor"
+datestamp = "1357398656"
+

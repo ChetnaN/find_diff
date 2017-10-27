@@ -1,0 +1,6 @@
+name = kensio
+description = Updates User mail list to the kensio mailing list
+package = kensio
+core = 7.x
+version = 7.x
+files[] = kensio.module
